@@ -2,13 +2,6 @@
 
 pragma solidity >=0.7.0 <0.9.0;
 
-    /** implementation notes
-    * must be able to trigger the start of a lotto
-    * must be able to track the number of tickets bought
-    * must have max tickets per user
-    * must be able to trigger the end of a lotto (block time)
-    **/
-
 /**
  * @title Storage
  * @dev Store & retrieve value in a variable
@@ -16,7 +9,6 @@ pragma solidity >=0.7.0 <0.9.0;
  */
 contract Lotto {
 
-    // TODO: do I add all of these to the constructor?
     uint public pot = 0;
     uint public ticketPrice;
     uint public numTickets;
@@ -27,6 +19,11 @@ contract Lotto {
     uint public houseFee = 10000000000000;
     uint raffleNumber = 0;
     bool raffleActive = false;
+    address public owner;
+
+    constructor() {
+        owner = msg.sender;
+    }
 
     // maps raffleNumber + adress -> number of tickets owned
     mapping(uint => mapping(address => uint)) numTicketsHeld;
@@ -37,8 +34,12 @@ contract Lotto {
     event LottoEnded(uint indexed winningTicketNumber, address indexed winningAddress);
     event TicketsBought(address indexed buyer, uint numTicketsBought, uint numTicketsInCirculation, uint numTicketsLeft);
 
-    // onlyOwner
-    function startLotto(uint _ticketPrice, uint _numTickets) external {
+    modifier onlyOwner() {
+        require(msg.sender == owner);
+        _;
+    }
+
+    function startLotto(uint _ticketPrice, uint _numTickets) external onlyOwner {
         require(_numTickets >= 100 || _numTickets <= 1000, "Must be between 100 and 1000 tickets");
         require(raffleActive == false, "There is already an active lottery");
         require(_numTickets % 20 == 0, "Number of tickets must be a factor of 20");
@@ -73,13 +74,12 @@ contract Lotto {
         emit TicketsBought(msg.sender, _numToBuy, ticketsInCirculation, numTickets - ticketsInCirculation);
     }
 
-    // onlyOwner
     // blocktime: https://ethereum.stackexchange.com/questions/7853/is-the-block-timestamp-value-in-solidity-seconds-or-milliseconds
-    function endLotto() external {
+    function endLotto() external onlyOwner {
         // require block.timestamp > startTime
 
-        winningTicketIndex = getRandomNumber(numTickets);
-        winnerAddress = ticketOwner[raffleNumber][winningTicketIndex];
+        uint winningTicketIndex = getRandomNumber();
+        address winnerAddress = ticketOwner[raffleNumber][winningTicketIndex];
 
         address(winnerAddress).transfer(pot);
 
@@ -96,7 +96,7 @@ contract Lotto {
         * https://stackoverflow.com/questions/48848948/how-to-generate-a-random-number-in-solidity
     **/
     function getRandomNumber() internal returns (uint randomNumber) {
-        uint randomNumber = keccak256(abi.encodePacked(block.difficulty, block.timestamp));
-        return randomNumber % currentTicketIndex;
+        uint kecHash = keccak256(abi.encodePacked(block.difficulty, now, currentTicketIndex));
+        return kecHash % currentTicketIndex;
     }
 }
