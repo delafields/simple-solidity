@@ -16,31 +16,39 @@ pragma solidity >=0.7.0 <0.9.0;
  */
 contract Lotto {
 
-    // uint public ticketPrice = 100000000000000;
-    // uint public numTickets = 500;
+    // TODO: do I add all of these to the constructor?
+    uint public pot = 0;
     uint public ticketPrice;
     uint public numTickets;
     uint public ticketsInCirculation = 0;
     uint public maxTicketsPerWallet;
     uint public startTime;
-    uint public fee = 10000000000000;
+    uint public houseFee = 10000000000000;
     uint raffleNumber = 0;
     bool raffleActive = false;
 
     // Possibly remove the nested mappings to have this only record the current lotto
+    // or keep...so that I can delete once the next raffle starts
+    // TODO: rename numTicketsHeld
     // maps raffleNumber -> adress -> number of tickets
     mapping(uint => mapping(address => uint)) numTicketsHeld;
     // maps raffleNumber -> ticketNumber -> owner address
     mapping(uint => mapping(uint => address)) ticketOwner;
 
+    // do I need indexed?
     event LottoStarted(uint ticketPrice, uint numTickets);
     event LottoEnded(uint winningTicketNumber, address indexed winningAddress);
+    event TicketsBought(address indexed buyer, uint numTicketsBought, uint numTicketsInCirculation, uint numTicketsLeft);
 
     // onlyOwner
     function startLotto(uint _ticketPrice, uint _numTickets) external {
-        require(lottoActive == false, "There is already an active lottery");
+        // TODO: keep _ticketPrice within a certain bound or hardcode it, same with ticketCount
+        // uint public ticketPrice = 100000000000000;
+        // uint public numTickets = 500;
+
+        require(raffleActive == false, "There is already an active lottery");
         // wording could be better here
-        require(_numTickets % 20 == 0, "Number of tickets mod 20 must equal 0");
+        require(_numTickets % 20 == 0, "Number of tickets must be a factor of 20");
 
         raffleActive = true;
         ticketPrice = _ticketPrice;
@@ -53,13 +61,26 @@ contract Lotto {
     }
 
     function buyTicket(uint _amount, uint _numToBuy) external {
-        require(_numToBuy <= numTickets - ticketsInCirculation, "There aren't that many tickets available");
-        // require user cant have more than max tickets
-        require(numTicketsHeld[raffleNumber][msg.sender] + _numToBuy < maxTicketsPerWallet, "You can't own that many tickets");
         // require number of tickets are available
+        require(_numToBuy <= numTickets - ticketsInCirculation, "You're trying to buy more tickets than are available");
+        // require user cant have more than max tickets
+        require(numTicketsHeld[raffleNumber][msg.sender] + _numToBuy < maxTicketsPerWallet, "You can only own 5% of the tickets, max");
         // require amount >= ticketprice + fee * num tickets
+        require(_amount >= (ticketPrice * _numToBuy) + houseFee, "Not paying enough for this number of tickets, + the house fee");
 
-        // add to mappings
+        ticketsInCirculation -= _numToBuy;
+        numTicketsHeld[raffleNumber][msg.sender] += _numToBuy;
+        // TODO: need to completely change how this works
+            // Can you buy more than 1 at once? If so how do I make this mapping for multiple tickets?
+        // ticketOwner[raffleNumber][]
+
+        // TODO: make sure that this is actually transferring ether
+        pot += amount;
+
+        event TicketsBought(address indexed buyer, uint numTicketsBought, uint numTicketsInCirculation, uint numTicketsLeft);
+
+
+        emit TicketsBought(msg.sender, _numToBuy, ticketsInCirculation, numTickets - ticketsInCirculation);
     }
 
     // onlyOwner
