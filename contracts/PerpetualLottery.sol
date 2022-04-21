@@ -21,6 +21,7 @@ contract Lotto {
     uint public ticketPrice;
     uint public numTickets;
     uint public ticketsInCirculation = 0;
+    uint public currentTicketIndex = 0;
     uint public maxTicketsPerWallet;
     uint public startTime;
     uint public houseFee = 10000000000000;
@@ -71,14 +72,15 @@ contract Lotto {
         ticketsInCirculation -= _numToBuy;
         numTicketsHeld[raffleNumber][msg.sender] += _numToBuy;
         // TODO: need to completely change how this works
-            // Can you buy more than 1 at once? If so how do I make this mapping for multiple tickets?
+        // Can you buy more than 1 at once? If so how do I make this mapping for multiple tickets?
         // ticketOwner[raffleNumber][]
+        for (uint i = currentTicketIndex; i < currentTicketIndex += _numToBuy; i++) {
+            ticketOwner[raffleNumber][i] = msg.sender;
+            currentTicketIndex++;
+        }
 
         // TODO: make sure that this is actually transferring ether
-        pot += amount;
-
-        event TicketsBought(address indexed buyer, uint numTicketsBought, uint numTicketsInCirculation, uint numTicketsLeft);
-
+        pot += _amount;
 
         emit TicketsBought(msg.sender, _numToBuy, ticketsInCirculation, numTickets - ticketsInCirculation);
     }
