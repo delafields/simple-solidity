@@ -28,27 +28,19 @@ contract Lotto {
     uint raffleNumber = 0;
     bool raffleActive = false;
 
-    // Possibly remove the nested mappings to have this only record the current lotto
-    // or keep...so that I can delete once the next raffle starts
-    // TODO: rename numTicketsHeld
-    // maps raffleNumber -> adress -> number of tickets
+    // maps raffleNumber + adress -> number of tickets owned
     mapping(uint => mapping(address => uint)) numTicketsHeld;
-    // maps raffleNumber -> ticketNumber -> owner address
+    // maps raffleNumber + ticketNumber -> owner address
     mapping(uint => mapping(uint => address)) ticketOwner;
 
-    // do I need indexed?
     event LottoStarted(uint ticketPrice, uint numTickets);
-    event LottoEnded(uint winningTicketNumber, address indexed winningAddress);
+    event LottoEnded(uint indexed winningTicketNumber, address indexed winningAddress);
     event TicketsBought(address indexed buyer, uint numTicketsBought, uint numTicketsInCirculation, uint numTicketsLeft);
 
     // onlyOwner
     function startLotto(uint _ticketPrice, uint _numTickets) external {
-        // TODO: keep _ticketPrice within a certain bound or hardcode it, same with ticketCount
-        // uint public ticketPrice = 100000000000000;
-        // uint public numTickets = 500;
-
+        require(_numTickets >= 100 || _numTickets <= 1000, "Must be between 100 and 1000 tickets");
         require(raffleActive == false, "There is already an active lottery");
-        // wording could be better here
         require(_numTickets % 20 == 0, "Number of tickets must be a factor of 20");
 
         raffleActive = true;
@@ -61,25 +53,21 @@ contract Lotto {
         emit LottoStarted(_ticketPrice, _numTickets);
     }
 
-    function buyTicket(uint _amount, uint _numToBuy) external {
-        // require number of tickets are available
+    function buyTicket(uint _amount, uint _numToBuy) external payable {
         require(_numToBuy <= numTickets - ticketsInCirculation, "You're trying to buy more tickets than are available");
-        // require user cant have more than max tickets
-        require(numTicketsHeld[raffleNumber][msg.sender] + _numToBuy < maxTicketsPerWallet, "You can only own 5% of the tickets, max");
-        // require amount >= ticketprice + fee * num tickets
+        require(numTicketsHeld[raffleNumber][msg.sender] + _numToBuy <= maxTicketsPerWallet, "You can only own 5% of the tickets, max");
         require(_amount >= (ticketPrice * _numToBuy) + houseFee, "Not paying enough for this number of tickets, + the house fee");
 
         ticketsInCirculation -= _numToBuy;
         numTicketsHeld[raffleNumber][msg.sender] += _numToBuy;
-        // TODO: need to completely change how this works
-        // Can you buy more than 1 at once? If so how do I make this mapping for multiple tickets?
-        // ticketOwner[raffleNumber][]
-        for (uint i = currentTicketIndex; i < currentTicketIndex += _numToBuy; i++) {
+
+        for (uint i = currentTicketIndex; i < currentTicketIndex + _numToBuy; i++) {
             ticketOwner[raffleNumber][i] = msg.sender;
             currentTicketIndex++;
         }
 
         // TODO: make sure that this is actually transferring ether
+        // this probably needs msg.value or something
         pot += _amount;
 
         emit TicketsBought(msg.sender, _numToBuy, ticketsInCirculation, numTickets - ticketsInCirculation);
@@ -88,30 +76,27 @@ contract Lotto {
     // onlyOwner
     // blocktime: https://ethereum.stackexchange.com/questions/7853/is-the-block-timestamp-value-in-solidity-seconds-or-milliseconds
     function endLotto() external {
-        // uint internal winningTicketNumber = getRandomNumber(_numTickets);
-        // address internal winningTicketOwner = 
-        // lottoNumber++;
+        // require block.timestamp > startTime
+
+        winningTicketIndex = getRandomNumber(numTickets);
+        winnerAddress = ticketOwner[raffleNumber][winningTicketIndex];
+
+        address(winnerAddress).transfer(pot);
+
+        raffleActive = false;
+        ticketPrice = 0;
+        numTickets = 0;
+        maxTicketsPerWallet = 0;
+
+        emit LottoEnded(winningTicketIndex, winnerAddress);
     }
 
-    // chainlink VRF
-    // https://dapp-world.com/smartbook/how-to-get-random-number-in-chainlink-wgJy
-    function getRandomNumber() internal returns (uint randomNumber) {}
-
-    // uint256 number;
-
-    // /**
-    //  * @dev Store value in variable
-    //  * @param num value to store
-    //  */
-    // function store(uint256 num) public {
-    //     number = num;
-    // }
-
-    // /**
-    //  * @dev Return value 
-    //  * @return value of 'number'
-    //  */
-    // function retrieve() public view returns (uint256){
-    //     return number;
-    // }
+    /** chainlink VRF if I'm ever feelin' fancy:
+        * https://dapp-world.com/smartbook/how-to-get-random-number-in-chainlink-wgJy
+        * https://stackoverflow.com/questions/48848948/how-to-generate-a-random-number-in-solidity
+    **/
+    function getRandomNumber() internal returns (uint randomNumber) {
+        uint randomNumber = keccak256(abi.encodePacked(block.difficulty, block.timestamp));
+        return randomNumber % currentTicketIndex;
+    }
 }
