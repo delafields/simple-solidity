@@ -1,10 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.7.0 <0.9.0;
 
-// make this ownable
-contract MasterContract {
+import "./Storage.sol";
 
-    address public owner = msg.sender;
+// great stack convo about this subject: https://ethereum.stackexchange.com/questions/2404/upgradeable-smart-contracts
+// alternative approach: https://gist.github.com/Arachnid/4ca9da48d51e23e5cfe0f0e14dd6318f
+
+/**
+ * @title Upgradeable Contracts
+ * @author delafields
+ * @notice This a master contract that update/call new versions
+ * @dev this is purely experimental
+ */
+contract MasterContract is Storage {
+
+    address private owner = msg.sender;
     address public currentVersionAddress;
     string  public currentReleaseNumber;
 
@@ -40,7 +50,7 @@ contract MasterContract {
         return (currentVersionAddress, currentReleaseNumber);
     }
 
-    // this should trigger the newest implementation's methods
+    // this triggers the newest implementation's methods
     fallback() external onlyOwner {
         (bool success, ) = currentVersionAddress.delegatecall(msg.data);
         require(success, "call to current version failed");

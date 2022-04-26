@@ -1,8 +1,11 @@
 Simple implementations of big projects in solidity
 
+Done
+* Perpetual Lottery
+* "Upgradeable" contract
+
 TODO
 * subscription service
-* "upgradeable" contract
 * auction
   * english auction
   * dutch auction
