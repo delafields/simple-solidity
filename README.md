@@ -6,9 +6,9 @@ Done
 
 TODO
 * subscription service
-* auction
-  * english auction
-  * dutch auction
+* auctions
+  * english auction (https://www.smartcontract.engineer/challenges/solidity-english-auction)
+  * dutch auction (https://www.smartcontract.engineer/challenges/solidity-dutch-auction)
 * crowdfund (juicebox-esque)
 * fractional
 * uniswap
