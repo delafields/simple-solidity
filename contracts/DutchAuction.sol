@@ -62,7 +62,7 @@ contract DutchAuction {
     }
 
     /**
-    * @returns _currentPrice Price as a function of time since start
+    * @return _currentPrice Price as a function of time since start
     */
     function getCurrentPrice() public view returns (uint _currentPrice) {
         uint timeFromStart = block.timestamp - startTime;
@@ -74,22 +74,30 @@ contract DutchAuction {
     }
 
     /**
-
+    * @dev Handles buying. Fails if ETH sent < currentPrice or reservePrice
+    * @dev Returns a refund to caller if ETH sent > currentPrice
+    * @dev Selfdestructs contract if buy request is successfull
     */
     function buy() external payable {
+        // if buy request > the initial endTime, reject
         require(block.timestamp < endTime, "Auction has expired");
 
         uint currentPrice = getCurrentPrice();
+        // if the price has degraded below the reserve price, reject
         require(currentPrice >= reservePrice, "The natural timed discount of this auction is below reserve.");
+        // if ETH sent below the currentPrice, reject
         require(msg.value >= currentPrice, "The current price is > the amount of ETH sent");
 
+        // if requires have passed, transfer NFT
         nft.transferFrom(nftSeller, msg.sender, nftId);
 
+        // handle refunding of extraneous ETH
         uint refundAmount = msg.value - currentPrice;
         if (refundAmount > 0) {
             payable(msg.sender).transfer(refundAmount);
         }
 
+        // if somehow extra ETH is sitting in the contract, send it to the deployer
         selfdestruct(nftSeller);
     }
 }
