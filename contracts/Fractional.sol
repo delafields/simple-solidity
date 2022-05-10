@@ -1,35 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0
+
 pragma solidity >=0.7.0 <0.9.0;
 
-import { ERC20 } from "https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC20.sol";
-import { ERC721 } from"https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
-/**
- * @title Fractional
- * @author delafields
- * @notice This is a mini implementation of Fractional 
- */
- contract Fractional {
+contract NFTFractions is ERC20, ERC20Burnable {
+    constructor(
+        string memory tokenName,
+        string memory tokenSymbol,
+        uint256 totalFractionalTokens,
+        address nftOwnerAddress
+    ) payable ERC20(tokenName, tokenSymbol) {
+        _mint(nftOwnerAddress, totalFractionalTokens);
+    }
 
-     struct Vault {
-         address _721Address;
-     }
-
-     function fractionalize (
-         address _721Address,
-         string _name,
-         string symbol,
-         uint _amount
-     ) public payable returns (uint)
-     {
-
-     }
-
-     function unfractionalize (
-
-     )
-     {
-
-     }
-
- }
+    function burnFrom(uint256 numToBurn) public {
+        burn(numToBurn);
+    }
+}
