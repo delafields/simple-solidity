@@ -3,12 +3,12 @@ Simple implementations of big projects in solidity
 Done
 * Perpetual Lottery
 * "Upgradeable" contract
+* auctions
+  * english auction
+  * dutch auction
 
 TODO
 * subscription service
-* auctions
-  * english auction (https://www.smartcontract.engineer/challenges/solidity-english-auction)
-  * dutch auction (https://www.smartcontract.engineer/challenges/solidity-dutch-auction)
 * crowdfund (juicebox-esque)
 * fractional
 * uniswap
