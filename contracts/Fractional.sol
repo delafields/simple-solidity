@@ -60,4 +60,28 @@ contract FractionalFactory {
 
         return deedId++;
     }
+
+    function unfractionalize(uint256 _deedId) public {
+        FractionalDeed memory deed = getDeed[_deedId];
+
+        // ensure this has been fractionalized
+        require(address(deed.tokenContract) != address(0), "this has not yet been fractionalized");
+
+        // remove mapping
+        delete getDeed[_deedId];
+
+        deed.tokenContract.burnFrom(deed.totalFractionalTokens);
+        deed.nftContract.transferFrom(address(this), msg.sender, deed.tokenId);
+    }
+
+    // interface allowing the contract to accept ERC721s
+    // https://ethereum.stackexchange.com/questions/48796/whats-the-point-of-erc721receiver-sol-and-erc721holder-sol-in-openzeppelins-im
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes memory
+    ) public payable returns (bytes4) {
+        return this.onERC721Received.selector;
+    }
 }
